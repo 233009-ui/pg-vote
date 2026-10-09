@@ -16,25 +16,8 @@ def gen_cea():
     return f"R{random.randint(100000,999999)}{chr(random.randint(65,90))}"
 
 def vote():
-    session = requests.Session()
-
-    # Step 1: Load the page (establishes session on origin)
-    r = session.get(
-        f"{ORIGIN}/agent-choice-awards/",
-        headers={
-            "Host": HOST,
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
-        },
-        verify=False,
-        timeout=30,
-    )
-    if r.status_code != 200:
-        print(f"PAGE_FAIL: {r.status_code}")
-        return False
-
-    # Step 2: Submit vote
     cea = gen_cea()
-    r = session.post(
+    r = requests.post(
         f"{ORIGIN}/wp-admin/admin-ajax.php",
         headers={
             "Host": HOST,
