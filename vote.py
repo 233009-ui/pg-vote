@@ -16,8 +16,19 @@ def gen_cea():
     return f"R{random.randint(100000,999999)}{chr(random.randint(65,90))}"
 
 def vote():
+    session = requests.Session()
+    session.get(
+        f"{ORIGIN}/agent-choice-awards/",
+        headers={
+            "Host": HOST,
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        },
+        verify=False,
+        timeout=30,
+    )
+
     cea = gen_cea()
-    r = requests.post(
+    r = session.post(
         f"{ORIGIN}/wp-admin/admin-ajax.php",
         headers={
             "Host": HOST,
