@@ -42,10 +42,10 @@ jobs:
                   return False
 
           ok=0
-          for wave in range(7):
+          for wave in range(4):
               with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
                   ok+=sum(1 for r in ex.map(lambda _:vote(),range(3)) if r)
-              if wave<6:
-                  time.sleep(0.5)
-          print(f'DONE {ok}/21 = {ok*V}v')
+              if wave<3:
+                  time.sleep(1)
+          print(f'DONE {ok}/12 = {ok*V}v')
           "
