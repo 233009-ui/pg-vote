@@ -11,11 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+        shard: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     steps:
       - run: |
           python3 -c "
-          import json,random,ssl,urllib.request,urllib.parse,concurrent.futures
+          import json,random,ssl,urllib.request,urllib.parse,concurrent.futures,time
 
           O='https://34.87.175.229'
           H='www.agentofferings.propertyguru.com.sg'
@@ -40,16 +40,14 @@ jobs:
                   ok='success' in body
                   print(f'cea={c} ok={ok}')
                   return ok
-              except Exception as e:
-                  print(f'cea={c} err={e}')
+              except:
                   return False
 
           ok=0
-          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
-              batch1=list(ex.map(lambda _:vote(),[0,1,2]))
-              ok+=sum(batch1)
-          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
-              batch2=list(ex.map(lambda _:vote(),[0,1,2]))
-              ok+=sum(batch2)
-          print(f'DONE {ok}/6 = {ok*V}v')
+          for wave in range(4):
+              with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+                  ok+=sum(1 for r in ex.map(lambda _:vote(),range(3)) if r)
+              if wave<3:
+                  time.sleep(1)
+          print(f'DONE {ok}/12 = {ok*V}v')
           "
