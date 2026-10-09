@@ -1,58 +1,71 @@
 import requests, urllib3, re, random, string, time, sys
 urllib3.disable_warnings()
 
-ORIGIN = "https://34.87.175.229"
-HOST = "www.agentofferings.propertyguru.com.sg"
+ORIGIN_IP = "34.87.175.229"
+DOMAIN = "www.agentofferings.propertyguru.com.sg"
 NONCE = "3e04eea04c"
+
+# Route domain to origin IP so cookies work correctly
+from urllib3.util.connection import create_connection
+import urllib3.util.connection as uc
+_orig = create_connection
+def _patched(address, *a, **kw):
+    host, port = address
+    if host == DOMAIN:
+        return _orig((ORIGIN_IP, port), *a, **kw)
+    return _orig(address, *a, **kw)
+uc.create_connection = _patched
 
 s = requests.Session()
 s.verify = False
-s.headers.update({
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
-    "Host": HOST,
-})
+s.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-cea = "R" + "".join(random.choices(string.digits, k=6)) + random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-print(f"Probe vote: {cea}")
+BASE = f"https://{DOMAIN}"
+vtsid = None
 
-r = s.post(f"{ORIGIN}/wp-admin/admin-ajax.php", headers={
-    "X-Requested-With": "XMLHttpRequest",
-    "Content-Type": "application/x-www-form-urlencoded",
-    "Referer": f"https://{HOST}/agent-choice-awards/vote/",
-    "Origin": f"https://{HOST}",
-}, data={
-    "action": "pg_vote_submit",
-    "nonce": NONCE,
-    "mobile": cea,
-    "votes": '{"24521":5,"24520":5}',
-}, timeout=60)
+for attempt in range(5):
+    cea = "R" + "".join(random.choices(string.digits, k=6)) + random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    print(f"Attempt {attempt+1}: CEA={cea}")
+    try:
+        r = s.post(f"{BASE}/wp-admin/admin-ajax.php", headers={
+            "X-Requested-With": "XMLHttpRequest",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Referer": f"{BASE}/agent-choice-awards/vote/",
+            "Origin": BASE,
+        }, data={
+            "action": "pg_vote_submit",
+            "nonce": NONCE,
+            "mobile": cea,
+            "votes": '{"24521":5,"24520":5}',
+        }, timeout=60)
+        print(f"  Status: {r.status_code}")
+        if r.status_code == 200:
+            body = r.json()
+            if body.get("success"):
+                m = re.search(r"vtsid=([a-f0-9]+)", body["data"]["redirect"])
+                if m:
+                    vtsid = m.group(1)
+                    print(f"  vtsid: {vtsid}")
+                    break
+            print(f"  Body: {r.text[:200]}")
+        else:
+            print(f"  Body: {r.text[:100]}")
+    except Exception as e:
+        print(f"  Error: {e}")
+    time.sleep(2)
 
-print(f"Vote status: {r.status_code}")
-if r.status_code != 200:
-    print(f"Vote failed: {r.text[:200]}")
+if not vtsid:
+    print("Could not get vtsid after 5 attempts")
     sys.exit(1)
-
-body = r.json()
-if not body.get("success"):
-    print(f"Vote unsuccessful: {body}")
-    sys.exit(1)
-
-m = re.search(r"vtsid=([a-f0-9]+)", body["data"]["redirect"])
-if not m:
-    print("No vtsid")
-    sys.exit(1)
-
-vtsid = m.group(1)
-print(f"Got vtsid: {vtsid}")
 
 time.sleep(1)
-lb = s.get(f"{ORIGIN}/agent-choice-awards/vote/leaderboard/?vtsid={vtsid}",
-    headers={"Accept": "text/html,*/*;q=0.8"},
-    timeout=60)
+lb = s.get(f"{BASE}/agent-choice-awards/vote/leaderboard/?vtsid={vtsid}",
+    headers={"Accept": "text/html,*/*;q=0.8", "Referer": f"{BASE}/agent-choice-awards/vote/"},
+    timeout=60, allow_redirects=True)
 
 print(f"Leaderboard: {lb.status_code}, {len(lb.text)} bytes")
 if lb.status_code != 200 or len(lb.text) < 10000:
-    print(f"Leaderboard failed: {lb.text[:300]}")
+    print(f"Failed: {lb.text[:300]}")
     sys.exit(1)
 
 cards = re.findall(r"<article[^>]*pg-lb-card[^>]*>(.*?)</article>", lb.text, re.DOTALL)
@@ -63,6 +76,11 @@ for card in cards:
     sc = re.search(r"pg-lb-score[^>]*>.*?<strong>(\d+)</strong>", card, re.DOTALL)
     if rk and nm and sc:
         rows.append((int(rk.group(1)), nm.group(1).strip(), int(sc.group(1))))
+
+if not rows:
+    print("No ranking cards found in HTML")
+    print("Page snippet:", lb.text[400000:401000])
+    sys.exit(1)
 
 print(f"\n{'Rank':<5} {'Candidate':<25} {'Votes':>12}")
 print("-" * 45)
@@ -78,6 +96,6 @@ if ri is not None:
     print()
     print(f"  Ryan Lee KK: #{ryan[0]} — {ryan[2]:,} votes")
     if above:
-        print(f"  ↑ {above[1]} (#{above[0]}): {above[2]:,} — {above[2] - ryan[2]:,} ahead")
+        print(f"  UP {above[1]} (#{above[0]}): {above[2]:,} — {above[2] - ryan[2]:,} ahead")
     if below:
-        print(f"  ↓ {below[1]} (#{below[0]}): {below[2]:,} — {ryan[2] - below[2]:,} behind")
+        print(f"  DOWN {below[1]} (#{below[0]}): {below[2]:,} — {ryan[2] - below[2]:,} behind")
