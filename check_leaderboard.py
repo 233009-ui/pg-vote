@@ -23,7 +23,7 @@ s.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (K
 BASE = f"https://{DOMAIN}"
 vtsid = None
 
-for attempt in range(5):
+for attempt in range(15):
     cea = "R" + "".join(random.choices(string.digits, k=6)) + random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     print(f"Attempt {attempt+1}: CEA={cea}")
     try:
@@ -36,7 +36,7 @@ for attempt in range(5):
             "action": "pg_vote_submit",
             "nonce": NONCE,
             "mobile": cea,
-            "votes": '{"24521":5,"24520":5}',
+            "votes": '{"24454":10}',
         }, timeout=60)
         print(f"  Status: {r.status_code}")
         if r.status_code == 200:
@@ -52,10 +52,10 @@ for attempt in range(5):
             print(f"  Body: {r.text[:100]}")
     except Exception as e:
         print(f"  Error: {e}")
-    time.sleep(2)
+    time.sleep(3)
 
 if not vtsid:
-    print("Could not get vtsid after 5 attempts")
+    print("Could not get vtsid after 15 attempts")
     sys.exit(1)
 
 time.sleep(1)
