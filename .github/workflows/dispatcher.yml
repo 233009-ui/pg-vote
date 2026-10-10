@@ -1,0 +1,20 @@
+name: Dispatcher
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger all vote workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for w in vote.yml vote2.yml vote3.yml vote4.yml vote5.yml vote6.yml vote7.yml vote8.yml vote9.yml vote10.yml; do
+            gh workflow run "$w" --repo ${{ github.repository }} &
+          done
+          wait
+          echo "All 10 dispatched at $(date -u)"
