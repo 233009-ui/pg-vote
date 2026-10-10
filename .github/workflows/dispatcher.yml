@@ -2,7 +2,7 @@ name: Dispatcher
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,3 +18,12 @@ jobs:
           done
           wait
           echo "All 10 dispatched at $(date -u)"
+
+      - name: Wait then re-dispatch
+        env:
+          GH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+        run: |
+          echo "Sleeping 600s before next cycle..."
+          sleep 600
+          gh workflow run dispatcher.yml --repo ${{ github.repository }}
+          echo "Next dispatcher triggered at $(date -u)"
