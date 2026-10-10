@@ -1,6 +1,8 @@
 name: V7
 
 on:
+  schedule:
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
