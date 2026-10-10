@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Trigger all vote workflows
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
         run: |
           for w in vote.yml vote2.yml vote3.yml vote4.yml vote5.yml vote6.yml vote7.yml vote8.yml vote9.yml vote10.yml; do
             gh workflow run "$w" --repo ${{ github.repository }} &
