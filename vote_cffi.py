@@ -4,7 +4,7 @@ import urllib.request, urllib.parse
 ORIGIN = "https://34.87.175.229"
 HOST = "www.agentofferings.propertyguru.com.sg"
 POST_ID = "24454"
-NONCE = "560010eb80"
+NONCE = "43b2e28d4d"
 VOTE_VAL = 10
 TOTAL = int(os.getenv("PG_VOTES", "30"))
 
